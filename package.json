@@ -1,0 +1,22 @@
+{
+  "name": "digitaljs_tester",
+  "version": "0.0.1",
+  "description": "Running testbenches using DigitalJS",
+  "main": "tester.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Marek Materzok",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "3vl": "^0.2.0",
+    "digitaljs": "^0.2.1",
+    "jest": "^24.1.0",
+    "yosys2digitaljs": "0.1.0"
+  },
+  "jest": {
+    "globals": {
+      "filename": "toplevel.sv"
+    }
+  }
+}
