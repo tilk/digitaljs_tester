@@ -5,11 +5,13 @@ const yosys2digitaljs = require('yosys2digitaljs');
 const { Vector3vl } = require('3vl');
 
 class TestFixture {
-    constructor() {
+    constructor(ins, outs) {
         this.timeout = 100;
         this.circuit = null;
-        this.inlist = [];
+        this.inlist = Object.entries(ins).map(([net, bits]) => ({net: net, bits: bits}));
         this.outlist = [];
+        this.ins = ins;
+        this.outs = outs;
         this.net2name = {};
     }
     setCircuit(circ) {
@@ -26,11 +28,11 @@ class TestFixture {
                 this.net2name[celldata.net] = name;
         }
     }
-    testInterface(inlist, outlist) {
+    testInterface() {
         test('toplevel module interface is correct', () => {
             const ioentry = (ioe) => [ioe.net, ioe.bits];
-            expect(this.inlist.map(ioentry).sort()).toEqual(Object.entries(inlist).sort());
-            expect(this.outlist.map(ioentry).sort()).toEqual(Object.entries(outlist).sort());
+            expect(this.inlist.map(ioentry).sort()).toEqual(Object.entries(this.ins).sort());
+            expect(this.outlist.map(ioentry).sort()).toEqual(Object.entries(this.outs).sort());
         });
     }
     testFunRandomized(fun, opts) {
@@ -50,7 +52,7 @@ class TestFixture {
                 yield randtest();
             }
         }
-        test("randomized logic table check", () => {
+        describe("randomized logic table check", () => {
             for (const ins of gen(100)) {
                 this.expectComb(ins, fun(ins));
             }
@@ -85,7 +87,7 @@ class TestFixture {
             }
             return rec(0);
         }
-        test("complete logic table check", () => {
+        describe("complete logic table check", () => {
             for (const ins of gen()) {
                 this.expectComb(ins, fun(ins));
             }
@@ -96,22 +98,25 @@ class TestFixture {
         if (totbits <= 6) this.testFunComplete(fun, opts);
         else this.testFunRandomized(fun, opts);
     }
-    expectComb(ins, outs) {
-        try {
-            for (const [name, value] of Object.entries(ins)) {
-                this.circuit.setInput(this.net2name[name], value);
+    expectComb(ins1, outs) {
+        const ins = Object.assign({}, ins1);
+        const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
+        test(message, () => {
+            try {
+                for (const [name, value] of Object.entries(ins)) {
+                    this.circuit.setInput(this.net2name[name], value);
+                }
+                for (let x = 0; x < this.timeout && this.circuit.hasPendingEvents; x++)
+                    this.circuit.updateGates();
+                for (const k in this.outlist) {
+                    expect(this.circuit.getOutput(this.outlist[k].name).toBin())
+                        .toEqual(outs[this.outlist[k].net].toBin());
+                }
+            } catch (e) {
+                e.message = message + '\n' + e.message;
+                throw e;
             }
-            for (let x = 0; x < this.timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(this.circuit.hasPendingEvents).toBeFalsy();
-            for (const k in this.outlist) {
-                expect(this.circuit.getOutput(this.outlist[k].name).toBin())
-                    .toEqual(outs[this.outlist[k].net].toBin());
-            }
-        } catch (e) {
-            e.message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ') + '\n' + e.message;
-            throw e;
-        }
+        });
     }
 }
 
