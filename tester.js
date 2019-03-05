@@ -39,7 +39,7 @@ class TestFixture {
         const me = this;
         const randtrit = x => Math.floor(3 * Math.random() - 1);
         const randbit  = x => 2 * Math.floor(2 * Math.random()) - 1;
-        const rand = opts.no_random_x ? randbit : randtrit;
+        const rand = (opts.no_x || opts.no_random_x) ? randbit : randtrit;
         function randtest() {
             const ret = {};
             for (const x of me.inlist) {
@@ -58,14 +58,15 @@ class TestFixture {
             }
         });
     }
-    testFunComplete(fun) {
+    testFunComplete(fun, opts) {
         const me = this;
+        const bits = opts.no_x ? [-1, 1] : [-1, 0, 1];
         function bitgen(n) {
             const bits = [];
             function* rec() {
                 if (bits.length == n) yield bits;
                 else {
-                    for (const bit of [-1, 0, 1]) {
+                    for (const bit of bits) {
                         bits.push(bit);
                         yield* rec();
                         bits.pop();
