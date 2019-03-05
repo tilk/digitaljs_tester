@@ -60,13 +60,13 @@ class TestFixture {
     }
     testFunComplete(fun, opts) {
         const me = this;
-        const bits = opts.no_x ? [-1, 1] : [-1, 0, 1];
+        const bitvals = opts.no_x ? [-1, 1] : [-1, 0, 1];
         function bitgen(n) {
             const bits = [];
             function* rec() {
                 if (bits.length == n) yield bits;
                 else {
-                    for (const bit of bits) {
+                    for (const bit of bitvals) {
                         bits.push(bit);
                         yield* rec();
                         bits.pop();
