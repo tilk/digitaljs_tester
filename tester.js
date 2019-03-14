@@ -54,7 +54,7 @@ class TestFixture {
         }
         describe("randomized logic table check", () => {
             for (const ins of gen(100)) {
-                this.expectComb(ins, fun(ins));
+                this.expectComb(ins, fun(ins), opts);
             }
         });
     }
@@ -90,7 +90,7 @@ class TestFixture {
         }
         describe("complete logic table check", () => {
             for (const ins of gen()) {
-                this.expectComb(ins, fun(ins));
+                this.expectComb(ins, fun(ins), opts);
             }
         });
     }
@@ -99,25 +99,60 @@ class TestFixture {
         if (totbits <= 6) this.testFunComplete(fun, opts);
         else this.testFunRandomized(fun, opts);
     }
-    expectComb(ins1, outs) {
+    expectComb(ins1, outs, opts) {
         const ins = Object.assign({}, ins1);
         const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
+        const timeout = opts.timeout || this.timeout;
         test(message, () => {
-            try {
+            for (const [name, value] of Object.entries(ins)) {
+                this.circuit.setInput(this.net2name[name], value);
+            }
+            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+                this.circuit.updateGates();
+            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            for (const k in this.outlist) {
+                expect(this.circuit.getOutput(this.outlist[k].name).toBin())
+                    .toEqual(outs[this.outlist[k].net].toBin());
+            }
+        });
+        if (opts.glitchtest) {
+            test('Glitch test for ' + message, () => {
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
                 }
-                for (let x = 0; x < this.timeout && this.circuit.hasPendingEvents; x++)
+                for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
                     this.circuit.updateGates();
-                for (const k in this.outlist) {
-                    expect(this.circuit.getOutput(this.outlist[k].name).toBin())
-                        .toEqual(outs[this.outlist[k].net].toBin());
+                expect(!this.circuit.hasPendingEvents).toBeTruthy();
+                for (const [name, value] of Object.entries(ins)) {
+                    if (value.bits == 0) continue;
+                    for (let i = 0; i < value.bits; i++) {
+                        this.circuit.setInput(this.net2name[name], value);
+                        for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+                            this.circuit.updateGates();
+                        expect(!this.circuit.hasPendingEvents).toBeTruthy();
+                        const mask = Vector3vl.concat(Vector3vl.zeros(i), Vector3vl.one, Vector3vl.zeros(value.bits - 1 - i));
+                        const outvals = {}, outmasks = {};
+                        for (const k in this.outlist) {
+                            outvals[k] = this.circuit.getOutput(this.outlist[k].name);
+                            outmasks[k] = Vector3vl.zeros(outvals[k].bits);
+                        }
+                        this.circuit.setInput(this.net2name[name], value.xor(mask));
+                        for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++) {
+                            this.circuit.updateGates();
+                            for (const k in this.outlist) {
+                                const outval = this.circuit.getOutput(this.outlist[k].name);
+                                const outmask = outval.xor(outvals[k]);
+                                // look for second change in any output
+                                expect(outmask.and(outmasks[k]).reduceOr().isHigh).toBeFalsy();
+                                outvals[k] = outval;
+                                outmasks[k] = outmasks[k].or(outmask);
+                            }
+                        }
+                        expect(!this.circuit.hasPendingEvents).toBeTruthy();
+                    }
                 }
-            } catch (e) {
-                e.message = message + '\n' + e.message;
-                throw e;
-            }
-        });
+            });
+        }
     }
 }
 
