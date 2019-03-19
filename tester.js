@@ -132,7 +132,7 @@ class TestFixture {
     }
     testFun(fun, opts = {}) {
         const totbits = this.inlist.reduce((a, b) => a + b.bits, 0);
-        if (totbits <= 6) this.testFunComplete(fun, opts);
+        if (totbits <= (opts.max_complete || 6)) this.testFunComplete(fun, opts);
         else this.testFunRandomized(fun, opts);
     }
     expectComb(ins1, outs, opts) {
