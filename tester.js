@@ -31,7 +31,7 @@ class TestFixture {
         }
     }
     testInterface() {
-        test('toplevel module interface is correct', () => {
+        test('REQUIRED: toplevel module interface is correct', () => {
             const ioentry = (ioe) => [ioe.net, ioe.bits];
             expect(this.inlist.map(ioentry).sort()).toEqual(Object.entries(this.ins).sort());
             expect(this.outlist.map(ioentry).sort()).toEqual(Object.entries(this.outs).sort());
@@ -54,7 +54,7 @@ class TestFixture {
                 prims.push('$busgroup','$busungroup','$busslice','$zeroextend','$signextend');
             } else prims.push(p);
         }
-        test('only selected primitives are used', () => {
+        test('REQUIRED: only selected primitives are used', () => {
             function f(circ) {
                 for (const [name, celldata] of Object.entries(circ)) {
                     if (celldata.celltype[0] == '$') {
