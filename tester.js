@@ -139,6 +139,10 @@ class TestFixture {
         const ins = Object.assign({}, ins1);
         const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
         const timeout = opts.timeout || this.timeout;
+        function what(binstr) {
+            if (opts.wildcard) return expect.stringMatching('^' + binstr.replace(/x/g, ".") + '$');
+            else return binstr;
+        }
         test(message, () => {
             for (const [name, value] of Object.entries(ins)) {
                 this.circuit.setInput(this.net2name[name], value);
@@ -148,7 +152,7 @@ class TestFixture {
             expect(!this.circuit.hasPendingEvents).toBeTruthy();
             for (const k in this.outlist) {
                 expect(this.circuit.getOutput(this.outlist[k].name).toBin())
-                    .toEqual(outs[this.outlist[k].net].toBin());
+                    .toEqual(what(outs[this.outlist[k].net].toBin()));
             }
         });
         if (opts.glitchtest) {
