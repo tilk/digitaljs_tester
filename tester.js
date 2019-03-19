@@ -83,9 +83,12 @@ class TestFixture {
             }
             return ret;
         }
-        function* gen(tries) { 
-            for (const k of Array(tries).keys()) {
-                yield randtest();
+        function* gen(tries) {
+            while (tries) {
+                const rt = randtest();
+                if (opts.precondition && !opts.precondition(rt)) continue;
+                tries--;
+                yield rt;
             }
         }
         describe("randomized logic table check", () => {
@@ -114,8 +117,10 @@ class TestFixture {
         function gen() {
             const ins = {};
             function* rec(level) {
-                if (level == me.inlist.length) yield ins;
-                else {
+                if (level == me.inlist.length) {
+                    if (!opts.precondition || opts.precondition(ins))
+                        yield ins;
+                } else {
                     for (const bits of bitgen(me.inlist[level].bits)) {
                         ins[me.inlist[level].net] = Vector3vl.fromArray(bits);
                         yield* rec(level+1);
