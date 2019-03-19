@@ -8,6 +8,7 @@ class TestFixture {
     constructor(ins, outs) {
         this.timeout = 100;
         this.circuit = null;
+        this.circdesc = null;
         this.inlist = Object.entries(ins).map(([net, bits]) => ({net: net, bits: bits}));
         this.outlist = [];
         this.ins = ins;
@@ -16,6 +17,7 @@ class TestFixture {
     }
     setCircuit(circ) {
         this.circuit = new digitaljs.HeadlessCircuit(circ);
+        this.circdesc = circ;
         this.inlist = [];
         this.outlist = [];
         this.net2name = {};
@@ -33,6 +35,40 @@ class TestFixture {
             const ioentry = (ioe) => [ioe.net, ioe.bits];
             expect(this.inlist.map(ioentry).sort()).toEqual(Object.entries(this.ins).sort());
             expect(this.outlist.map(ioentry).sort()).toEqual(Object.entries(this.outs).sort());
+        });
+    }
+    testPrimitives(pprims, neg = false) {
+        const prims = ['$input', '$output','$constant'];
+        for (const p of pprims) {
+            if (p == 'gate') {
+                prims.push('$not','$and','$nand','$or','$nor','$xor','$xnor','$reduce_and','$reduce_nand','$reduce_or','$reduce_nor','$reduce_xor','$reduce_xnor','$reduce_bool','$logic_not','$repeater');
+            } else if (p == 'arith') {
+                prims.push('$shl','$shr','$lt','$le','$eq','$ne','$gt','$ge','$neg','$pos','$add','$sub','$mul','$div','$mod','$pow','$zeroextend','$signextend');
+            } else if (p == 'mux') {
+                prims.push('$mux','$pmux');
+            } else if (p == 'dff') {
+                prims.push('$dff');
+            } else if (p == 'mem') {
+                prims.push('$mem');
+            } else if (p == 'bus') {
+                prims.push('$busgroup','$busungroup','$busslice','$zeroextend','$signextend');
+            } else prims.push(p);
+        }
+        test('only selected primitives are used', () => {
+            function f(circ) {
+                for (const [name, celldata] of Object.entries(circ)) {
+                    if (celldata.celltype[0] == '$') {
+                        if (neg) {
+                            expect(prims).not.toContain(celldata.celltype);
+                        } else {
+                            expect(prims).toContain(celldata.celltype);
+                        }
+                    }
+                }
+            }
+            f(this.circdesc.devices);
+            for (const [name, circ] of Object.entries(this.circdesc.subcircuits))
+                f(circ.devices);
         });
     }
     testFunRandomized(fun, opts) {
