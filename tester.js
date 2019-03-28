@@ -73,17 +73,26 @@ class TestFixture {
     }
     testCriticalPath(timeout) {
         test('REQUIRED: critical path is at most ' + timeout, () => {
-            const ins = {};
             for (const x of this.inlist) {
-                ins[x.net] = Vector3vl.xes(x.bits);
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.xes(x.bits));
             }
             for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
                 this.circuit.updateGates();
             expect(!this.circuit.hasPendingEvents).toBeTruthy();
             for (const x of this.inlist) {
-                ins[x.net] = Vector3vl.ones(x.bits);
+                this.circuit.setInput(this.net2name[x.net], Vector3vl.ones(x.bits));
+            }
+            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+                this.circuit.updateGates();
+            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.xes(x.bits));
+            }
+            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+                this.circuit.updateGates();
+            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            for (const x of this.inlist) {
+                this.circuit.setInput(this.net2name[x.net], Vector3vl.zeros(x.bits));
             }
             for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
                 this.circuit.updateGates();
