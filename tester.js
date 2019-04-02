@@ -55,9 +55,9 @@ class TestFixture {
             } else prims.push(p);
         }
         test('REQUIRED: only selected primitives are used', () => {
-            function f(circ) {
+            const f = (circ) => {
                 for (const [name, celldata] of Object.entries(circ)) {
-                    if (celldata.celltype[0] == '$') {
+                    if (celldata.celltype[0] == '$' && !this.circdesc.subcircuits[celldata.celltype]) {
                         if (neg) {
                             expect(prims).not.toContain(celldata.celltype);
                         } else {
@@ -65,7 +65,7 @@ class TestFixture {
                         }
                     }
                 }
-            }
+            };
             f(this.circdesc.devices);
             for (const [name, circ] of Object.entries(this.circdesc.subcircuits))
                 f(circ.devices);
