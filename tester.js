@@ -71,32 +71,36 @@ class TestFixture {
                 f(circ.devices);
         });
     }
+    waitUntilStable(timeout) {
+        for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+            this.circuit.updateGates();
+        expect(!this.circuit.hasPendingEvents).toBeTruthy();
+    }
+    circuitOutputs() {
+        let ret = {};
+        for (const k in this.outlist) {
+            ret[this.outlist[k].net] = this.circuit.getOutput(this.outlist[k].name);
+        }
+        return ret;
+    }
     testCriticalPath(timeout) {
         test('REQUIRED: critical path is at most ' + timeout, () => {
             for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.xes(x.bits));
             }
-            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            this.waitUntilStable(timeout);
             for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.ones(x.bits));
             }
-            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            this.waitUntilStable(timeout);
             for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.xes(x.bits));
             }
-            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            this.waitUntilStable(timeout);
             for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.zeros(x.bits));
             }
-            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+            this.waitUntilStable(timeout);
         });
     }
     testFunRandomized(fun, opts) {
@@ -121,7 +125,7 @@ class TestFixture {
         }
         describe("randomized logic table check", () => {
             for (const ins of gen(100)) {
-                this.expectComb(ins, fun(ins), opts);
+                this.expect(ins, fun, opts);
             }
         });
     }
@@ -159,7 +163,7 @@ class TestFixture {
         }
         describe("complete logic table check", () => {
             for (const ins of gen()) {
-                this.expectComb(ins, fun(ins), opts);
+                this.expect(ins, fun, opts);
             }
         });
     }
@@ -168,61 +172,76 @@ class TestFixture {
         if (totbits <= (opts.max_complete || 6)) this.testFunComplete(fun, opts);
         else this.testFunRandomized(fun, opts);
     }
-    expectComb(ins1, outs, opts) {
-        const ins = Object.assign({}, ins1);
-        const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
-        const timeout = opts.timeout || this.timeout;
+    expect(ins1, fun, opts) {
         function what(binstr) {
             if (opts.wildcard) return expect.stringMatching('^' + binstr.replace(/x/g, ".") + '$');
             else return binstr;
         }
-        test(message, () => {
-            for (const [name, value] of Object.entries(ins)) {
-                this.circuit.setInput(this.net2name[name], value);
-            }
-            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                this.circuit.updateGates();
-            expect(!this.circuit.hasPendingEvents).toBeTruthy();
-            for (const k in this.outlist) {
-                expect(this.circuit.getOutput(this.outlist[k].name).toBin())
-                    .toEqual(what(outs[this.outlist[k].net].toBin()));
-            }
-        });
-        if (opts.glitchtest) {
-            test('Glitch test for ' + message, () => {
+        const timeout = opts.timeout || this.timeout;
+        const ins = Object.assign({}, ins1);
+        if (!opts.clock) {
+            const outs = fun(ins);
+            const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
+            test(message, () => {
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
                 }
-                for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                    this.circuit.updateGates();
-                expect(!this.circuit.hasPendingEvents).toBeTruthy();
-                for (const [name, value] of Object.entries(ins)) {
-                    if (value.bits == 0) continue;
-                    for (let i = 0; i < value.bits; i++) {
+                this.waitUntilStable(timeout);
+                for (const k in this.outlist) {
+                    expect(this.circuit.getOutput(this.outlist[k].name).toBin())
+                        .toEqual(what(outs[this.outlist[k].net].toBin()));
+                }
+            });
+            if (opts.glitchtest) {
+                test('Glitch test for ' + message, () => {
+                    for (const [name, value] of Object.entries(ins)) {
                         this.circuit.setInput(this.net2name[name], value);
-                        for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
-                            this.circuit.updateGates();
-                        expect(!this.circuit.hasPendingEvents).toBeTruthy();
-                        const mask = Vector3vl.concat(Vector3vl.zeros(i), Vector3vl.one, Vector3vl.zeros(value.bits - 1 - i));
-                        const outvals = {}, outmasks = {};
-                        for (const k in this.outlist) {
-                            outvals[k] = this.circuit.getOutput(this.outlist[k].name);
-                            outmasks[k] = Vector3vl.zeros(outvals[k].bits);
-                        }
-                        this.circuit.setInput(this.net2name[name], value.xor(mask));
-                        for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++) {
-                            this.circuit.updateGates();
-                            for (const k in this.outlist) {
-                                const outval = this.circuit.getOutput(this.outlist[k].name);
-                                const outmask = outval.xor(outvals[k]);
-                                // look for second change in any output
-                                expect(outmask.and(outmasks[k]).reduceOr().isHigh).toBeFalsy();
-                                outvals[k] = outval;
-                                outmasks[k] = outmasks[k].or(outmask);
-                            }
-                        }
-                        expect(!this.circuit.hasPendingEvents).toBeTruthy();
                     }
+                    for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
+                        this.circuit.updateGates();
+                    expect(!this.circuit.hasPendingEvents).toBeTruthy();
+                    for (const [name, value] of Object.entries(ins)) {
+                        if (value.bits == 0) continue;
+                        for (let i = 0; i < value.bits; i++) {
+                            this.circuit.setInput(this.net2name[name], value);
+                            this.waitUntilStable(timeout);
+                            const mask = Vector3vl.concat(Vector3vl.zeros(i), Vector3vl.one, Vector3vl.zeros(value.bits - 1 - i));
+                            const outvals = {}, outmasks = {};
+                            for (const k in this.outlist) {
+                                outvals[k] = this.circuit.getOutput(this.outlist[k].name);
+                                outmasks[k] = Vector3vl.zeros(outvals[k].bits);
+                            }
+                            this.circuit.setInput(this.net2name[name], value.xor(mask));
+                            for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++) {
+                                this.circuit.updateGates();
+                                for (const k in this.outlist) {
+                                    const outval = this.circuit.getOutput(this.outlist[k].name);
+                                    const outmask = outval.xor(outvals[k]);
+                                    // look for second change in any output
+                                    expect(outmask.and(outmasks[k]).reduceOr().isHigh).toBeFalsy();
+                                    outvals[k] = outval;
+                                    outmasks[k] = outmasks[k].or(outmask);
+                                }
+                            }
+                            expect(!this.circuit.hasPendingEvents).toBeTruthy();
+                        }
+                    }
+                });
+            }
+        } else {
+            const message = Object.entries(ins).filter(([a,x]) => a != opts.clock).map(([a, x]) => a + ':' + x.toBin()).join(' ');
+            test(message, () => {
+                const outs = fun(ins, this.circuitOutputs());
+                for (const [name, value] of Object.entries(ins)) {
+                    this.circuit.setInput(this.net2name[name], value);
+                }
+                this.circuit.setInput(this.net2name[opts.clock], Vector3vl.zero);
+                this.waitUntilStable(timeout);
+                this.circuit.setInput(this.net2name[opts.clock], Vector3vl.one);
+                this.waitUntilStable(timeout);
+                for (const k in this.outlist) {
+                    expect(this.circuit.getOutput(this.outlist[k].name).toBin())
+                        .toEqual(what(outs[this.outlist[k].net].toBin()));
                 }
             });
         }
