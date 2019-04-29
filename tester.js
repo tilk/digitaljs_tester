@@ -30,6 +30,12 @@ class TestFixture {
                 this.net2name[celldata.net] = name;
         }
     }
+    reset(port, polarity) {
+        this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(polarity));
+        this.waitUntilStable(1000);
+        this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(!polarity));
+        this.waitUntilStable(1000);
+    }
     testInterface() {
         test('REQUIRED: toplevel module interface is correct', () => {
             const ioentry = (ioe) => [ioe.net, ioe.bits];
@@ -111,7 +117,9 @@ class TestFixture {
         function randtest() {
             const ret = {};
             for (const x of me.inlist) {
-                ret[x.net] = Vector3vl.fromArray(Array(x.bits).fill(0).map(rand));
+                if (x.net == opts.clock) continue;
+                if (opts.fixed && opts.fixed[x.net]) ret[x.net] = opts.fixed[x.net];
+                else ret[x.net] = Vector3vl.fromArray(Array(x.bits).fill(0).map(rand));
             }
             return ret;
         }
@@ -152,6 +160,11 @@ class TestFixture {
                 if (level == me.inlist.length) {
                     if (!opts.precondition || opts.precondition(ins))
                         yield ins;
+                } else if (me.inlist[level].net == opts.clock) {
+                    yield* rec(level+1);
+                } else if (opts.fixed && opts.fixed[me.inlist[level].net]) {
+                    ins[me.inlist[level].net] = opts.fixed[me.inlist[level].net];
+                    yield* rec(level+1);
                 } else {
                     for (const bits of bitgen(me.inlist[level].bits)) {
                         ins[me.inlist[level].net] = Vector3vl.fromArray(bits);
