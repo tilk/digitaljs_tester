@@ -82,6 +82,12 @@ class TestFixture {
             this.circuit.updateGates();
         expect(!this.circuit.hasPendingEvents).toBeTruthy();
     }
+    clockPulse(clk, timeout) {
+        this.circuit.setInput(this.net2name[clk], Vector3vl.zero);
+        this.waitUntilStable(timeout);
+        this.circuit.setInput(this.net2name[clk], Vector3vl.one);
+        this.waitUntilStable(timeout);
+    }
     circuitOutputs() {
         let ret = {};
         for (const k in this.outlist) {
@@ -241,6 +247,28 @@ class TestFixture {
                     }
                 });
             }
+        } else if (opts.algo) {
+            const outs = fun(ins);
+            const cycle_timeout = opts.algo.timeout || 100;
+            const message = Object.entries(ins).filter(([a,x]) => a != opts.clock && a != opts.algo.start).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).filter(([a, x]) => a != opts.algo.ready).map(([a, x]) => a + ':' + x.toBin()).join(' ');
+            test(message, () => {
+                expect(this.circuit.getOutput(this.net2name[opts.algo.ready]).toBin()).toEqual(Vector3vl.one.toBin());
+                for (const [name, value] of Object.entries(ins)) {
+                    this.circuit.setInput(this.net2name[name], value);
+                }
+                this.circuit.setInput(this.net2name[opts.algo.start], Vector3vl.one);
+                this.clockPulse(opts.clock, timeout);
+                this.circuit.setInput(this.net2name[opts.algo.start], Vector3vl.zero);
+                for (let i = 0; i < cycle_timeout && this.circuit.getOutput(this.net2name[opts.algo.ready]).isLow; i++) {
+                    this.clockPulse(opts.clock, timeout);
+                }
+                expect(this.circuit.getOutput(this.net2name[opts.algo.ready]).toBin()).toEqual(Vector3vl.one.toBin());
+                for (const k in this.outlist) {
+                    if (this.outlist[k].net == opts.algo.ready) continue;
+                    expect([this.outlist[k].net, this.circuit.getOutput(this.outlist[k].name).toBin()])
+                        .toEqual([this.outlist[k].net, what(outs[this.outlist[k].net].toBin())]);
+                }
+            });
         } else {
             const message = Object.entries(ins).filter(([a,x]) => a != opts.clock).map(([a, x]) => a + ':' + x.toBin()).join(' ');
             test(message, () => {
@@ -248,13 +276,10 @@ class TestFixture {
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
                 }
-                this.circuit.setInput(this.net2name[opts.clock], Vector3vl.zero);
-                this.waitUntilStable(timeout);
-                this.circuit.setInput(this.net2name[opts.clock], Vector3vl.one);
-                this.waitUntilStable(timeout);
+                this.clockPulse(opts.clock, timeout);
                 for (const k in this.outlist) {
-                    expect(this.circuit.getOutput(this.outlist[k].name).toBin())
-                        .toEqual(what(outs[this.outlist[k].net].toBin()));
+                    expect([this.outlist[k].net, this.circuit.getOutput(this.outlist[k].name).toBin()])
+                        .toEqual([this.outlist[k].net, what(outs[this.outlist[k].net].toBin())]);
                 }
             });
         }
