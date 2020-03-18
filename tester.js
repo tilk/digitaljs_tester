@@ -3,6 +3,7 @@
 const digitaljs = require('digitaljs');
 const yosys2digitaljs = require('yosys2digitaljs');
 const { Vector3vl } = require('3vl');
+const topsort = require('topsort');
 
 class TestFixture {
     constructor(ins, outs) {
@@ -113,6 +114,64 @@ class TestFixture {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.zeros(x.bits));
             }
             this.waitUntilStable(timeout);
+        });
+    }
+    testCriticalPathAcyclic(timeout) {
+        const gr = [];
+        const pr = {};
+        function addConn(i, o, prop) {
+            gr.push([i, o]);
+            if (pr[o] === undefined) pr[o] = {};
+            pr[o][i] = prop;
+        }
+        function constructGraph(graph, prefix) {
+            for (const elem of graph.getElements()) {
+                if (elem.get('type') != 'digital.Subcircuit') {
+                    const prop = elem.get('propagation');
+                    for (const il of graph.getConnectedLinks(elem, {inbound: true}))
+                        for (const ol of graph.getConnectedLinks(elem, {outbound: true}))
+                            addConn(prefix + il.get('id'), prefix + ol.get('id'), prop);
+                } else {
+                    const iomap = elem.get('circuitIOmap');
+                    const gprefix = prefix + elem.get('id') + '&';
+                    const ggraph = elem.get('graph');
+                    constructGraph(ggraph, gprefix);
+                    for (const il of graph.getConnectedLinks(elem, {inbound: true}))
+                        for (const ol of ggraph.getConnectedLinks(ggraph.getCell(iomap[il.get('target').port]), {outbound: true}))
+                            addConn(prefix + il.get('id'), gprefix + ol.get('id'), 0);
+                    for (const ol of graph.getConnectedLinks(elem, {outbound: true}))
+                        for (const il of ggraph.getConnectedLinks(ggraph.getCell(iomap[ol.get('source').port]), {inbound: true}))
+                            addConn(gprefix + il.get('id'), prefix + ol.get('id'), 0);
+                }
+            }
+        }
+        test('REQUIRED: critical path is at most ' + timeout, () => {
+            const graph = this.circuit._graph;
+            constructGraph(graph, '');
+            const toporder = (function() { 
+                try {
+                    return topsort(gr);
+                } catch (exc) {
+                    throw new Error('Circuit is not acyclic');
+                }
+            })();
+            const cp = {};
+            for (const elem of graph.getElements()) {
+                if (elem.get('type') == 'digital.Output')
+                    for (const il of graph.getConnectedLinks(elem, {inbound: true}))
+                        cp[il.get('id')] = 0;
+            }
+            for (const id of toporder) {
+                if (cp[id] === undefined) cp[id] = 0;
+                for (const i in pr[id]) {
+                    cp[id] = Math.max(cp[id], pr[id][i] + cp[i]);
+                }
+            }
+            for (const elem of graph.getElements()) {
+                if (elem.get('type') == 'digital.Output')
+                    for (const il of graph.getConnectedLinks(elem, {inbound: true}))
+                        expect(cp[il.get('id')]).toBeLessThanOrEqual(timeout);
+            }
         });
     }
     testFunRandomized(fun, opts) {
