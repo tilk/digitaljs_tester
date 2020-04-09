@@ -31,6 +31,9 @@ class TestFixture {
                 this.net2name[celldata.net] = name;
         }
     }
+    setInput(port, value) {
+        this.circuit.setInput(this.net2name[port], value)
+    }
     reset(port, polarity) {
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(polarity));
         this.waitUntilStable(1000);
@@ -84,6 +87,7 @@ class TestFixture {
         expect(!this.circuit.hasPendingEvents).toBeTruthy();
     }
     clockPulse(clk, timeout) {
+        this.waitUntilStable(timeout);
         this.circuit.setInput(this.net2name[clk], Vector3vl.zero);
         this.waitUntilStable(timeout);
         this.circuit.setInput(this.net2name[clk], Vector3vl.one);
