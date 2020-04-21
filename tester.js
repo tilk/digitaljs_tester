@@ -1,6 +1,8 @@
 "use strict";
 
-const digitaljs = require('digitaljs');
+//import { Circuit } from 'digitaljs';
+const digitaljs = require('./main.js');
+
 const yosys2digitaljs = require('yosys2digitaljs');
 const { Vector3vl } = require('3vl');
 const topsort = require('topsort');
@@ -15,6 +17,7 @@ class TestFixture {
         this.ins = ins;
         this.outs = outs;
         this.net2name = {};
+        this.interface_ok = false;
     }
     setCircuit(circ) {
         this.circuit = new digitaljs.HeadlessCircuit(circ);
@@ -23,18 +26,27 @@ class TestFixture {
         this.outlist = [];
         this.net2name = {};
         for (const [name, celldata] of Object.entries(circ.devices)) {
-            if (celldata.celltype == '$input')
+            if (celldata.type == 'Input')
                 this.inlist.push({name: name, net: celldata.net, bits: celldata.bits});
-            if (celldata.celltype == '$output')
+            if (celldata.type == 'Output')
                 this.outlist.push({name: name, net: celldata.net, bits: celldata.bits});
             if (celldata.net)
                 this.net2name[celldata.net] = name;
         }
+        // test if interface ok
+        const ioentry = (ioe) => [ioe.net, ioe.bits];
+        this.interface_ok = true;
+        if (this.inlist.map(ioentry).sort().toString() != Object.entries(this.ins).sort().toString())
+            this.interface_ok = false;
+        if (this.outlist.map(ioentry).sort().toString() != Object.entries(this.outs).sort().toString())
+            this.interface_ok = false;
     }
     setInput(port, value) {
+        if (!this.interface_ok) return;
         this.circuit.setInput(this.net2name[port], value)
     }
     reset(port, polarity) {
+        if (!this.interface_ok) return;
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(polarity));
         this.waitUntilStable(1000);
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(!polarity));
@@ -102,6 +114,7 @@ class TestFixture {
     }
     testCriticalPath(timeout) {
         test('REQUIRED: critical path is at most ' + timeout, () => {
+            this.interfacePrereq();
             for (const x of this.inlist) {
                 this.circuit.setInput(this.net2name[x.net], Vector3vl.xes(x.bits));
             }
@@ -150,6 +163,7 @@ class TestFixture {
             }
         }
         test('REQUIRED: critical path is at most ' + timeout, () => {
+            this.interfacePrereq();
             const graph = this.circuit._graph;
             constructGraph(graph, '');
             const toporder = (function() { 
@@ -265,6 +279,7 @@ class TestFixture {
             const outs = fun(ins);
             const message = Object.entries(ins).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).map(([a, x]) => a + ':' + x.toBin()).join(' ');
             test(message, () => {
+                this.interfacePrereq();
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
                 }
@@ -276,6 +291,7 @@ class TestFixture {
             });
             if (opts.glitchtest) {
                 test('Glitch test for ' + message, () => {
+                    this.interfacePrereq();
                     for (const [name, value] of Object.entries(ins)) {
                         this.circuit.setInput(this.net2name[name], value);
                     }
@@ -315,6 +331,7 @@ class TestFixture {
             const cycle_timeout = opts.algo.timeout || 100;
             const message = Object.entries(ins).filter(([a,x]) => a != opts.clock && a != opts.algo.start).map(([a, x]) => a + ':' + x.toBin()).join(' ') + ' ' + Object.entries(outs).filter(([a, x]) => a != opts.algo.ready).map(([a, x]) => a + ':' + x.toBin()).join(' ');
             test(message, () => {
+                this.interfacePrereq();
                 expect(this.circuit.getOutput(this.net2name[opts.algo.ready]).toBin()).toEqual(Vector3vl.one.toBin());
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
@@ -335,6 +352,7 @@ class TestFixture {
         } else {
             const message = Object.entries(ins).filter(([a,x]) => a != opts.clock).map(([a, x]) => a + ':' + x.toBin()).join(' ');
             test(message, () => {
+                this.interfacePrereq();
                 const outs = fun(ins, this.circuitOutputs());
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
@@ -346,6 +364,9 @@ class TestFixture {
                 }
             });
         }
+    }
+    interfacePrereq() {
+        if (!this.interface_ok) throw new Error("Interface incorrect, aborting");
     }
 }
 
