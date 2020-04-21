@@ -60,30 +60,30 @@ class TestFixture {
         });
     }
     testPrimitives(pprims, neg = false) {
-        const prims = ['$input', '$output','$constant'];
+        const prims = ['Input', 'Output','Constant'];
         for (const p of pprims) {
             if (p == 'gate') {
-                prims.push('$not','$and','$nand','$or','$nor','$xor','$xnor','$reduce_and','$reduce_nand','$reduce_or','$reduce_nor','$reduce_xor','$reduce_xnor','$reduce_bool','$logic_not','$repeater');
+                prims.push('Not','And','Nand','Or','Nor','Xor','Xnor','AndReduce','NandReduce','OrReduce','NorReduce','XorReduce','XnorReduce','Repeater');
             } else if (p == 'arith') {
-                prims.push('$shl','$shr','$lt','$le','$eq','$ne','$gt','$ge','$neg','$pos','$add','$sub','$mul','$div','$mod','$pow','$zeroextend','$signextend');
+                prims.push('ShiftLeft','ShiftRight','Lt','Le','Eq','Ne','Gt','Ge','Negation','UnaryPlus','Addition','Subtraction','Multiplication','Division','Modulo','Power','ZeroExtend','SignExtend');
             } else if (p == 'mux') {
-                prims.push('$mux','$pmux');
+                prims.push('Mux','Mux1Hot');
             } else if (p == 'dff') {
-                prims.push('$dff');
+                prims.push('Dff');
             } else if (p == 'mem') {
-                prims.push('$mem');
+                prims.push('Memory');
             } else if (p == 'bus') {
-                prims.push('$busgroup','$busungroup','$busslice','$zeroextend','$signextend');
+                prims.push('BusGroup','BusUngroup','BusSlice','ZeroExtend','SignExtend');
             } else prims.push(p);
         }
         test('REQUIRED: only selected primitives are used', () => {
             const f = (circ) => {
                 for (const [name, celldata] of Object.entries(circ)) {
-                    if (celldata.celltype[0] == '$' && !this.circdesc.subcircuits[celldata.celltype]) {
+                    if (celldata.type != 'Subcircuit') {
                         if (neg) {
-                            expect(prims).not.toContain(celldata.celltype);
+                            expect(prims).not.toContain(celldata.type);
                         } else {
-                            expect(prims).toContain(celldata.celltype);
+                            expect(prims).toContain(celldata.type);
                         }
                     }
                 }
