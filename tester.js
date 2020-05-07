@@ -45,6 +45,10 @@ class TestFixture {
         if (!this.interface_ok) return;
         this.circuit.setInput(this.net2name[port], value)
     }
+    getOutput(port) {
+        if (!this.interface_ok) return;
+        return this.circuit.getOutput(this.net2name[port]);
+    }
     reset(port, polarity) {
         if (!this.interface_ok) return;
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(polarity));
