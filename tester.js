@@ -97,6 +97,21 @@ class TestFixture {
                 f(circ.devices);
         });
     }
+    testMemoryPorts(readports, writeports) {
+        test('REQUIRED: only memories with at most ' + readports + ' read ports and at most ' + writeports + ' write ports are allowed', () => {
+            const f = (circ) => {
+                for (const [name, celldata] of Object.entries(circ)) {
+                    if (celldata.type == 'Memory') {
+                        expect((celldata.rdports || []).length).toBeLessThanOrEqual(readports);
+                        expect((celldata.wrports || []).length).toBeLessThanOrEqual(writeports);
+                    }
+                }
+            };
+            f(this.circdesc.devices);
+            for (const [name, circ] of Object.entries(this.circdesc.subcircuits))
+                f(circ.devices);
+        });
+    }
     waitUntilStable(timeout) {
         for (let x = 0; x < timeout && this.circuit.hasPendingEvents; x++)
             this.circuit.updateGates();
