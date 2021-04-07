@@ -71,7 +71,7 @@ class TestFixture {
             } else if (p == 'arith') {
                 prims.push('ShiftLeft','ShiftRight','Lt','Le','Eq','Ne','Gt','Ge','Negation','UnaryPlus','Addition','Subtraction','Multiplication','Division','Modulo','Power','ZeroExtend','SignExtend');
             } else if (p == 'mux') {
-                prims.push('Mux','Mux1Hot');
+                prims.push('Mux','Mux1Hot','Eq','Ne');
             } else if (p == 'dff') {
                 prims.push('Dff');
             } else if (p == 'mem') {
