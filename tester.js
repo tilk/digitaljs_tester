@@ -67,7 +67,7 @@ class TestFixture {
         const prims = ['Input', 'Output','Constant'];
         for (const p of pprims) {
             if (p == 'gate') {
-                prims.push('Not','And','Nand','Or','Nor','Xor','Xnor','AndReduce','NandReduce','OrReduce','NorReduce','XorReduce','XnorReduce','Repeater');
+                prims.push('Not','And','Nand','Or','Nor','Xor','Xnor','AndReduce','NandReduce','OrReduce','NorReduce','XorReduce','XnorReduce','Repeater','Eq','Ne');
             } else if (p == 'arith') {
                 prims.push('ShiftLeft','ShiftRight','Lt','Le','Eq','Ne','Gt','Ge','Negation','UnaryPlus','Addition','Subtraction','Multiplication','Division','Modulo','Power','ZeroExtend','SignExtend');
             } else if (p == 'mux') {
