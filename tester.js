@@ -117,12 +117,16 @@ class TestFixture {
             this.circuit.updateGates();
         expect(!this.circuit.hasPendingEvents).toBeTruthy();
     }
-    clockPulse(clk, timeout) {
+    clockPulse(clk, timeout, clockTestPolarity = false) {
         this.waitUntilStable(timeout);
         this.circuit.setInput(this.net2name[clk], Vector3vl.zero);
         this.waitUntilStable(timeout);
         this.circuit.setInput(this.net2name[clk], Vector3vl.one);
         this.waitUntilStable(timeout);
+        if (clockTestPolarity) {
+            this.circuit.setInput(this.net2name[clk], Vector3vl.zero);
+            this.waitUntilStable(timeout);
+        }
     }
     circuitOutputs() {
         let ret = {};
@@ -376,7 +380,7 @@ class TestFixture {
                 for (const [name, value] of Object.entries(ins)) {
                     this.circuit.setInput(this.net2name[name], value);
                 }
-                this.clockPulse(opts.clock, timeout);
+                this.clockPulse(opts.clock, timeout, opts.clockTestPolarity);
                 for (const k in this.outlist) {
                     expect([this.outlist[k].net, this.circuit.getOutput(this.outlist[k].name).toBin()])
                         .toEqual([this.outlist[k].net, what(outs[this.outlist[k].net].toBin())]);
