@@ -1,7 +1,6 @@
 "use strict";
 
-//import { Circuit } from 'digitaljs';
-const digitaljs = require('./main.js');
+const digitaljs = require('digitaljs');
 
 const yosys2digitaljs = require('yosys2digitaljs');
 const { Vector3vl } = require('3vl');
