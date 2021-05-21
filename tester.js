@@ -96,13 +96,23 @@ class TestFixture {
                 f(circ.devices);
         });
     }
-    testMemoryPorts(readports, writeports) {
-        test('REQUIRED: only memories with at most ' + readports + ' read ports and at most ' + writeports + ' write ports are allowed', () => {
+    testMemoryPorts(readports, writeports, readtype = null) {
+        const readtype_msg = (readtype == "sync") ? 'with synchronous read ' :
+                             (readtype == "async") ? 'with asynchronous read ' : '';
+        test('REQUIRED: only memories with at most ' + readports + ' read ports and at most ' + writeports + ' write ports ' + readtype_msg + 'are allowed', () => {
             const f = (circ) => {
                 for (const [name, celldata] of Object.entries(circ)) {
                     if (celldata.type == 'Memory') {
                         expect((celldata.rdports || []).length).toBeLessThanOrEqual(readports);
                         expect((celldata.wrports || []).length).toBeLessThanOrEqual(writeports);
+                        if (readtype) {
+                            for (const rdport of celldata.rdports) {
+                                if (readtype == "sync")
+                                    expect('clock_polarity' in rdport).toBeTruthy();
+                                if (readtype == "async")
+                                    expect('clock_polarity' in rdport).toBeFalsy();
+                            }
+                        }
                     }
                 }
             };
