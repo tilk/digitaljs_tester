@@ -403,7 +403,7 @@ class TestFixture {
 }
 
 async function synthFixture(fixture, filename) {
-    fixture.setCircuit((await yosys2digitaljs.process([filename])).output);
+    fixture.setCircuit(digitaljs.transform.transformCircuit((await yosys2digitaljs.process([filename])).output));
 }
 
 exports.synthFixture = synthFixture;
