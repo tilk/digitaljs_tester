@@ -175,7 +175,7 @@ class TestFixture {
         }
         function constructGraph(graph, prefix) {
             for (const elem of graph.getElements()) {
-                if (elem.get('type') != 'digital.Subcircuit') {
+                if (elem.get('type') != 'Subcircuit') {
                     const prop = elem.get('propagation');
                     for (const il of graph.getConnectedLinks(elem, {inbound: true}))
                         for (const ol of graph.getConnectedLinks(elem, {outbound: true}))
@@ -207,7 +207,7 @@ class TestFixture {
             })();
             const cp = {};
             for (const elem of graph.getElements()) {
-                if (elem.get('type') == 'digital.Output')
+                if (elem.get('type') == 'Output')
                     for (const il of graph.getConnectedLinks(elem, {inbound: true}))
                         cp[il.get('id')] = 0;
             }
@@ -218,7 +218,7 @@ class TestFixture {
                 }
             }
             for (const elem of graph.getElements()) {
-                if (elem.get('type') == 'digital.Output')
+                if (elem.get('type') == 'Output')
                     for (const il of graph.getConnectedLinks(elem, {inbound: true}))
                         expect(cp[il.get('id')]).toBeLessThanOrEqual(timeout);
             }
