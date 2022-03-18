@@ -322,7 +322,7 @@ class TestFixture {
                 }
             });
             if (opts.glitchtest) {
-                test('Glitch test for ' + message, () => {
+                test('REQUIRED: Glitch test for ' + message, () => {
                     this.interfacePrereq();
                     for (const [name, value] of Object.entries(ins)) {
                         this.circuit.setInput(this.net2name[name], value);
