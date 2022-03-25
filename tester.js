@@ -68,9 +68,9 @@ class TestFixture {
             if (p == 'gate') {
                 prims.push('Not','And','Nand','Or','Nor','Xor','Xnor','AndReduce','NandReduce','OrReduce','NorReduce','XorReduce','XnorReduce','Repeater','Eq','Ne');
             } else if (p == 'arith') {
-                prims.push('ShiftLeft','ShiftRight','Lt','Le','Eq','Ne','Gt','Ge','Negation','UnaryPlus','Addition','Subtraction','Multiplication','Division','Modulo','Power','ZeroExtend','SignExtend');
+                prims.push('ShiftLeft','ShiftRight','Lt','Le','Eq','Ne','Gt','Ge','Negation','UnaryPlus','Addition','Subtraction','Multiplication','Division','Modulo','Power','ZeroExtend','SignExtend', 'ShiftLeftConst', 'ShiftRightConst', 'LtConst', 'LeConst', 'EqConst', 'NeConst', 'GtConst', 'GeConst', 'AdditionConst', 'SubtractionConst', 'MultiplicationConst', 'DivisionConst', 'ModuloConst', 'PowerConst');
             } else if (p == 'mux') {
-                prims.push('Mux','Mux1Hot','Eq','Ne');
+                prims.push('Mux','GenMux','Mux1Hot','Eq','Ne');
             } else if (p == 'dff') {
                 prims.push('Dff');
             } else if (p == 'mem') {
