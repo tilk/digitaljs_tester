@@ -48,12 +48,14 @@ class TestFixture {
         if (!this.interface_ok) return;
         return this.circuit.getOutput(this.net2name[port]);
     }
-    reset(port, polarity) {
+    reset(port, polarity, clockPort = null) {
         if (!this.interface_ok) return;
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(polarity));
-        this.waitUntilStable(1000);
+        if (clockPort) this.clockPulse(clockPort, 500);
+        else this.waitUntilStable(1000);
         this.circuit.setInput(this.net2name[port], Vector3vl.fromBool(!polarity));
-        this.waitUntilStable(1000);
+        if (clockPort) this.clockPulse(clockPort, 500);
+        else this.waitUntilStable(1000);
     }
     testInterface() {
         test('REQUIRED: toplevel module interface is correct', () => {
