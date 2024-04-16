@@ -9,11 +9,11 @@
   "author": "Marek Materzok",
   "license": "BSD-2-Clause",
   "dependencies": {
-    "3vl": "^1.0.0",
-    "digitaljs": "^0.12.1",
+    "3vl": "^1.0.1",
+    "digitaljs": "^0.13.0",
     "jest": "^25.5.4",
     "topsort": "^0.0.2",
-    "yosys2digitaljs": "0.6.0"
+    "yosys2digitaljs": "0.8.0"
   },
   "jest": {
     "globals": {
